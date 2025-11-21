@@ -2,9 +2,12 @@ from datetime import datetime, timezone
 from uuid import uuid1
 
 import confluent_kafka
+from confluent_kafka import KafkaError, Message
+
+from kafka_async import Consumer, Producer
 
 
-async def test_produce(producer, consumer):
+async def test_produce(producer: Producer, consumer: Consumer):
     topic = str(uuid1())
     value = str(uuid1())
     date = datetime(2023, 1, 1, tzinfo=timezone.utc)
@@ -12,7 +15,7 @@ async def test_produce(producer, consumer):
     on_delivery_err: confluent_kafka.KafkaError | None = None
     on_delivery_msg: confluent_kafka.Message | None = None
 
-    async def on_delivery(err, msg):
+    async def on_delivery(err: KafkaError | None, msg: Message | None) -> None:
         nonlocal on_delivery_err, on_delivery_msg
         on_delivery_err = err
         on_delivery_msg = msg
@@ -37,10 +40,11 @@ async def test_produce(producer, consumer):
     assert msg.timestamp() == (confluent_kafka.TIMESTAMP_CREATE_TIME, int(date.timestamp() * 1000))
 
 
-async def test_purge(producer):
+async def test_purge(producer: Producer) -> None:
     topic = str(uuid1())
 
-    async def on_delivery(err, msg):
+    async def on_delivery(err: KafkaError | None, msg: Message | None) -> None:
+        assert err
         assert err.code() == confluent_kafka.KafkaError._PURGE_QUEUE
 
     producer.produce(topic=topic, on_delivery=on_delivery)
@@ -48,11 +52,11 @@ async def test_purge(producer):
     await producer.flush(timeout=10)
 
 
-async def test_poll(producer):
+async def test_poll(producer: Producer) -> None:
     topic = str(uuid1())
     called = False
 
-    async def on_delivery(err, msg):
+    async def on_delivery(err: KafkaError | None, msg: Message | None) -> None:
         nonlocal called
         called = True
 
@@ -66,14 +70,14 @@ async def test_poll(producer):
     assert polled == 0
 
 
-async def test__len__(producer):
+async def test__len__(producer: Producer) -> None:
     topic = str(uuid1())
     assert len(producer) == 0
     producer.produce(topic=topic)
     assert len(producer) == 1
 
 
-async def test_list_topics__all(producer):
+async def test_list_topics__all(producer: Producer) -> None:
     topic = str(uuid1())
     producer.produce(topic=topic)
     await producer.flush(timeout=10)
@@ -81,7 +85,7 @@ async def test_list_topics__all(producer):
     assert topic in topics.topics
 
 
-async def test_list_topics__one(producer):
+async def test_list_topics__one(producer: Producer) -> None:
     topic = str(uuid1())
     producer.produce(topic=topic)
     await producer.flush(timeout=10)
@@ -89,5 +93,5 @@ async def test_list_topics__one(producer):
     assert topic in topics.topics
 
 
-def test_set_sasl_credentials(producer):
+def test_set_sasl_credentials(producer: Producer) -> None:
     producer.set_sasl_credentials('user', 'password')

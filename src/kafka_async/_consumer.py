@@ -4,7 +4,6 @@ from types import TracebackType
 from typing import Any, Literal, overload
 
 import anyio
-import anyio.from_thread
 import anyio.to_thread
 import confluent_kafka
 import confluent_kafka.admin
@@ -69,9 +68,9 @@ class Consumer:
         offsets_list = to_list(offsets) if offsets is not None else None
         kwargs = make_kwargs(message=message, offsets=offsets_list)
         if asynchronous:
-            return self.sync.commit(**kwargs)
+            return self.sync.commit(**kwargs)  # pyright: ignore[reportUnknownVariableType]
 
-        return anyio.to_thread.run_sync(lambda: self.sync.commit(asynchronous=False, **kwargs))
+        return anyio.to_thread.run_sync(lambda: self.sync.commit(asynchronous=False, **kwargs))  # pyright: ignore[reportUnknownVariableType,reportUnknownLambdaType]
 
     async def committed(
         self, partitions: Iterable[confluent_kafka.TopicPartition], timeout: float | None = None

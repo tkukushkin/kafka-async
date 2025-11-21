@@ -5,6 +5,7 @@ from functools import wraps
 from typing import Any, ParamSpec, TypeVar
 
 import anyio.from_thread
+from anyio.lowlevel import current_token
 
 if sys.version_info >= (3, 11):
     from typing import Self
@@ -25,17 +26,18 @@ def async_to_sync(
     def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _T:
         result = func(*args, **kwargs)
         if isinstance(result, Awaitable):
-            return anyio.from_thread.run(lambda: result)
+            return anyio.from_thread.run(lambda: result)  # pyright: ignore[reportUnknownLambdaType]
         return result
 
     return wrapper
 
 
 async def wrap_concurrent_future(future: Future[_T]) -> _T:
-    if future.done() or future.exception():
+    if future.done():
         return future.result()
     event = anyio.Event()
-    future.add_done_callback(lambda _: event.set())
+    event_loop_token = current_token()
+    future.add_done_callback(lambda _: anyio.from_thread.run_sync(event.set, token=event_loop_token))
     await event.wait()
     return future.result()
 

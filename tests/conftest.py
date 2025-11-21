@@ -1,4 +1,5 @@
 import time
+from collections.abc import AsyncIterator
 from typing import Any
 from uuid import uuid1
 
@@ -6,7 +7,7 @@ import confluent_kafka.admin
 import pytest
 from lovely.pytest.docker.compose import Services
 
-import kafka_async
+from kafka_async import AdminClient, Consumer, Producer
 
 
 @pytest.fixture(scope='session', autouse=True)
@@ -20,17 +21,17 @@ def kafka_addr() -> str:
 
 
 @pytest.fixture(scope='session')
-def default_config(kafka_addr) -> dict[str, Any]:
+def default_config(kafka_addr: str) -> dict[str, Any]:
     return {'bootstrap.servers': kafka_addr, 'topic.metadata.refresh.interval.ms': 1000}
 
 
 @pytest.fixture(scope='session', autouse=True)
-def _start_kafka(default_config, docker_services: Services) -> None:
+def start_kafka(default_config: dict[str, Any], docker_services: Services) -> None:
     docker_services.start('kafka')
     exception = None
     for _ in range(50):
         try:
-            confluent_kafka.admin.AdminClient(default_config).list_topics(timeout=10)
+            confluent_kafka.admin.AdminClient(default_config).list_topics(timeout=10)  # pyright: ignore[reportArgumentType]
         except confluent_kafka.KafkaException as exc:
             time.sleep(0.3)
             exception = exc
@@ -40,21 +41,19 @@ def _start_kafka(default_config, docker_services: Services) -> None:
 
 
 @pytest.fixture
-async def producer(default_config):
-    async with kafka_async.Producer(default_config) as producer:
+async def producer(default_config: dict[str, Any]) -> AsyncIterator[Producer]:
+    async with Producer(default_config) as producer:
         yield producer
 
 
 @pytest.fixture
-async def admin_client(default_config) -> kafka_async.AdminClient:
-    return kafka_async.AdminClient(default_config)
+async def admin_client(default_config: dict[str, Any]) -> AdminClient:
+    return AdminClient(default_config)
 
 
 @pytest.fixture
-async def consumer(default_config):
-    async with kafka_async.Consumer(
-        {**default_config, 'group.id': str(uuid1()), 'auto.offset.reset': 'earliest'}
-    ) as consumer:
+async def consumer(default_config: dict[str, Any]) -> AsyncIterator[Consumer]:
+    async with Consumer({**default_config, 'group.id': str(uuid1()), 'auto.offset.reset': 'earliest'}) as consumer:
         yield consumer
 
 

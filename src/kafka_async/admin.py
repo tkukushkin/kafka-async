@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Coroutine, Iterable, Mapping
 from concurrent.futures import Future
-from typing import Any, Literal, overload
+from typing import Any, cast, overload
 
 import anyio
 import anyio.to_thread
@@ -26,7 +26,7 @@ class AdminClient:
         request_timeout: float | None = None,
         validate_only: bool = False,
     ) -> FuturesDict[str, None]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[str, None].from_concurrent_futures(
             self.sync.create_topics(
                 to_list(new_topics),
                 validate_only=validate_only,
@@ -41,7 +41,7 @@ class AdminClient:
         operation_timeout: float | None = None,
         request_timeout: float | None = None,
     ) -> FuturesDict[str, None]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[str, None].from_concurrent_futures(
             self.sync.delete_topics(
                 to_list(topics), **make_kwargs(operation_timeout=operation_timeout, request_timeout=request_timeout)
             )
@@ -60,7 +60,7 @@ class AdminClient:
         request_timeout: float | None = None,
         validate_only: bool = False,
     ) -> FuturesDict[str, None]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[str, None].from_concurrent_futures(
             self.sync.create_partitions(
                 to_list(new_partitions),
                 validate_only=validate_only,
@@ -74,7 +74,9 @@ class AdminClient:
         *,
         request_timeout: float | None = None,
     ) -> FuturesDict[confluent_kafka.admin.ConfigResource, dict[str, confluent_kafka.admin.ConfigEntry]]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[
+            confluent_kafka.admin.ConfigResource, dict[str, confluent_kafka.admin.ConfigEntry]
+        ].from_concurrent_futures(
             self.sync.describe_configs(to_list(resources), **make_kwargs(request_timeout=request_timeout))
         )
 
@@ -86,7 +88,7 @@ class AdminClient:
         validate_only: bool = False,
         broker: int | None = None,
     ) -> FuturesDict[confluent_kafka.admin.ConfigResource, None]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[confluent_kafka.admin.ConfigResource, None].from_concurrent_futures(
             self.sync.incremental_alter_configs(
                 to_list(resources),
                 validate_only=validate_only,
@@ -100,7 +102,7 @@ class AdminClient:
         *,
         request_timeout: float | None = None,
     ) -> FuturesDict[confluent_kafka.admin.AclBinding, None]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[confluent_kafka.admin.AclBinding, None].from_concurrent_futures(
             self.sync.create_acls(to_list(acls), **make_kwargs(request_timeout=request_timeout))
         )
 
@@ -119,8 +121,10 @@ class AdminClient:
         acl_binding_filters: Iterable[confluent_kafka.admin.AclBindingFilter],
         *,
         request_timeout: float | None = None,
-    ) -> FuturesDict[confluent_kafka.admin.AclBindingFilter, None]:
-        return FuturesDict.from_concurrent_futures(
+    ) -> FuturesDict[confluent_kafka.admin.AclBindingFilter, list[confluent_kafka.admin.AclBinding]]:
+        return FuturesDict[
+            confluent_kafka.admin.AclBindingFilter, list[confluent_kafka.admin.AclBinding]
+        ].from_concurrent_futures(
             self.sync.delete_acls(to_list(acl_binding_filters), **make_kwargs(request_timeout=request_timeout))
         )
 
@@ -148,7 +152,7 @@ class AdminClient:
         include_authorized_operations: bool = False,
         request_timeout: float | None = None,
     ) -> FuturesDict[str, confluent_kafka.admin.ConsumerGroupDescription]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[str, confluent_kafka.admin.ConsumerGroupDescription].from_concurrent_futures(
             self.sync.describe_consumer_groups(
                 to_list(group_ids),
                 include_authorized_operations=include_authorized_operations,
@@ -163,7 +167,7 @@ class AdminClient:
         include_authorized_operations: bool = False,
         request_timeout: float | None = None,
     ) -> FuturesDict[str, confluent_kafka.admin.TopicDescription]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[str, confluent_kafka.admin.TopicDescription].from_concurrent_futures(
             self.sync.describe_topics(
                 confluent_kafka.TopicCollection(to_list(topics)) if isinstance(topics, Iterable) else topics,
                 include_authorized_operations=include_authorized_operations,
@@ -187,7 +191,7 @@ class AdminClient:
     def delete_consumer_groups(
         self, group_ids: Iterable[str], *, request_timeout: float | None = None
     ) -> FuturesDict[str, None]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[str, None].from_concurrent_futures(
             self.sync.delete_consumer_groups(to_list(group_ids), **make_kwargs(request_timeout=request_timeout))
         )
 
@@ -198,7 +202,7 @@ class AdminClient:
         require_stable: bool = False,
         request_timeout: float | None = None,
     ) -> FuturesDict[str, confluent_kafka.ConsumerGroupTopicPartitions]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[str, confluent_kafka.ConsumerGroupTopicPartitions].from_concurrent_futures(
             self.sync.list_consumer_group_offsets(
                 to_list(list_consumer_group_offsets_request),
                 require_stable=require_stable,
@@ -211,8 +215,10 @@ class AdminClient:
         alter_consumer_group_offsets_request: Iterable[confluent_kafka.ConsumerGroupTopicPartitions],
         *,
         request_timeout: float | None = None,
-    ) -> FuturesDict[str, confluent_kafka.ConsumerGroupTopicPartitions]:
-        return FuturesDict.from_concurrent_futures(
+    ) -> FuturesDict[confluent_kafka.ConsumerGroupTopicPartitions, confluent_kafka.ConsumerGroupTopicPartitions]:
+        return FuturesDict[
+            confluent_kafka.ConsumerGroupTopicPartitions, confluent_kafka.ConsumerGroupTopicPartitions
+        ].from_concurrent_futures(
             self.sync.alter_consumer_group_offsets(
                 to_list(alter_consumer_group_offsets_request), **make_kwargs(request_timeout=request_timeout)
             )
@@ -223,7 +229,7 @@ class AdminClient:
 
     @overload
     async def describe_user_scram_credentials(
-        self, users: Literal[None] = None, *, request_timeout: float | None = None
+        self, users: None = None, *, request_timeout: float | None = None
     ) -> dict[str, confluent_kafka.admin.UserScramCredentialsDescription]: ...
 
     @overload
@@ -250,12 +256,16 @@ class AdminClient:
     ):
         kwargs = make_kwargs(request_timeout=request_timeout)
         if users is None:
-            future = self.sync.describe_user_scram_credentials(**kwargs)
-            assert isinstance(future, Future)
+            future = cast(
+                Future[dict[str, confluent_kafka.admin.UserScramCredentialsDescription]],
+                self.sync.describe_user_scram_credentials(**kwargs),
+            )
             return wrap_concurrent_future(future)
         futures_dict = self.sync.describe_user_scram_credentials(to_list(users), **kwargs)
         assert isinstance(futures_dict, dict)
-        return FuturesDict.from_concurrent_futures(futures_dict)
+        return FuturesDict[str, confluent_kafka.admin.UserScramCredentialsDescription].from_concurrent_futures(
+            futures_dict
+        )
 
     def alter_user_scram_credentials(
         self,
@@ -263,7 +273,7 @@ class AdminClient:
         *,
         request_timeout: float | None = None,
     ) -> FuturesDict[str, None]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[str, None].from_concurrent_futures(
             self.sync.alter_user_scram_credentials(to_list(alterations), **make_kwargs(request_timeout=request_timeout))
         )
 
@@ -274,7 +284,9 @@ class AdminClient:
         isolation_level: confluent_kafka.IsolationLevel | None = None,
         request_timeout: float | None = None,
     ) -> FuturesDict[confluent_kafka.TopicPartition, confluent_kafka.admin.ListOffsetsResultInfo]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[
+            confluent_kafka.TopicPartition, confluent_kafka.admin.ListOffsetsResultInfo
+        ].from_concurrent_futures(
             self.sync.list_offsets(
                 to_dict(topic_partition_offsets),
                 **make_kwargs(isolation_level=isolation_level, request_timeout=request_timeout),
@@ -288,7 +300,9 @@ class AdminClient:
         request_timeout: float | None = None,
         operation_timeout: float | None = None,
     ) -> FuturesDict[confluent_kafka.TopicPartition, confluent_kafka.admin.DeletedRecords]:
-        return FuturesDict.from_concurrent_futures(
+        return FuturesDict[
+            confluent_kafka.TopicPartition, confluent_kafka.admin.DeletedRecords
+        ].from_concurrent_futures(
             self.sync.delete_records(
                 to_list(topic_partition_offsets),
                 **make_kwargs(request_timeout=request_timeout, operation_timeout=operation_timeout),

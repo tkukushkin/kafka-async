@@ -5,7 +5,6 @@ from types import TracebackType
 from typing import Any
 
 import anyio
-import anyio.from_thread
 import anyio.to_thread
 import confluent_kafka
 import confluent_kafka.admin

@@ -1,14 +1,17 @@
 {
-  "include": ["src", "tests"],
+  "include": [
+    "src",
+    "tests"
+  ],
+  "typeCheckingMode": "strict",
+  "reportUnknownMemberType": false,
   "executionEnvironments": [
     {
-      "root": "src",
-      "typeCheckingMode": "strict"
+      "root": "src"
     },
     {
       "root": "tests",
-      "extraPaths": ["."],
-      "typeCheckingMode": "basic"
+      "reportMissingTypeStubs": false
     }
   ]
 }
