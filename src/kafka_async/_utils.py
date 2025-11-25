@@ -1,4 +1,5 @@
 import sys
+import threading
 from collections.abc import Awaitable, Callable, Coroutine, Generator, Iterable, Mapping
 from concurrent.futures import Future
 from functools import wraps
@@ -35,10 +36,24 @@ def async_to_sync(
 async def wrap_concurrent_future(future: Future[_T]) -> _T:
     if future.done():
         return future.result()
+
     event = anyio.Event()
+    thread = threading.current_thread()
     event_loop_token = current_token()
-    future.add_done_callback(lambda _: anyio.from_thread.run_sync(event.set, token=event_loop_token))
-    await event.wait()
+
+    def done_callback(_: object) -> None:
+        if threading.current_thread() is thread:
+            # future is done at the moment of callback registration,
+            # callback is called immediately on the same thread
+            event.set()
+        else:
+            # callback is called from another thread, have to use
+            # anyio.from_thread.run_sync to set the event
+            anyio.from_thread.run_sync(event.set, token=event_loop_token)
+
+    future.add_done_callback(done_callback)
+    if not event.is_set():
+        await event.wait()
     return future.result()
 
 
